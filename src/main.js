@@ -1,38 +1,70 @@
-import Swal from 'sweetalert2';
+import './style.css';
+import swal from 'sweetalert2';
 
-const searchButton = document.querySelector('#buttonSearch');
-const input = document.querySelector('#inputText');
-const content = document.querySelector('#container');
-const BASE_URL = 'https://api.exchangerate.host/latest?base=';
+const btnSubmit = document.getElementById('btn-submit');
+const baseUrl = 'https://api.exchangerate.host/latest?base=';
 
-searchButton.addEventListener('click', () => {
-    localStorage.clear();
-    const currency = input.value.toUpperCase();
-    return fetch(`${BASE_URL}${currency}`)
-        .then((Response) => Response.json())
+let coinsDownload = [];
+const coins = () => {
+    fetch(`${baseUrl}EUR`)
+        .then((received) => received.json())
         .then((data) => {
-            if (!Object.keys(data.rates).includes(currency)) {
-                throw new Error();
-            }
-            return Object.entries(data.rates).map(([code, rate]) => {
-                const div = document.createElement('div');
-                div.innerHTML = `${code}: ${rate}`;
-                return div;
-            });
-        })
-        .then((divElements) => {
-            divElements.forEach((div) => {
-                content.appendChild(div);
-            });
-        })
-        .catch((error) => {
-            console.error('Error:', error);
-            // Show error message using SweetAlert2
-            Swal.fire({
-                title: 'Error!',
-                text: 'Moeda inserida inválida',
-                icon: 'error',
-                confirmButtonText: 'Entendi',
-            });
+            Object.keys(data.rates).forEach((element) => coinsDownload.push(element));
         });
+};
+
+const verify = (imput) => {
+    if (imput === '') {
+        swal.fire({
+            icon: 'error',
+            title: 'Oops...',
+            text: 'Você precisa passar uma moeda!',
+        });
+        return false;
+    } else if (!coinsDownload.some((coin) => coin === imput)) {
+        swal.fire({
+            icon: 'error',
+            title: 'Oops...',
+            text: 'Moeda não existente!',
+        });
+        return false;
+    }
+    return true;
+};
+
+const addDivs = (object, coin) => {
+    const divReturn = document.getElementById('return-div');
+    if (divReturn.childNodes.length > 3) {
+        divReturn.innerHTML = '';
+    }
+    const h2 = document.getElementById('return-h2');
+    h2.innerHTML = `Valores referentes a 1 ${coin}.`;
+    Object.entries(object.rates).forEach(element => {
+        const div = document.createElement('div');
+        const spanCoin = document.createElement('span');
+        const spanValue = document.createElement('span');
+        const imgCoin = document.createElement('img');
+        spanCoin.className = 'coin';
+        spanValue.className = 'value';
+        spanCoin.innerHTML = element[0];
+        spanValue.innerHTML = element[1];
+        imgCoin.src = './src/imgs/moeda.png';
+        div.id = 'divs-coin';
+        div.appendChild(imgCoin);
+        div.appendChild(spanCoin);
+        div.appendChild(spanValue);
+        divReturn.appendChild(div);
+    }); 
+};
+
+btnSubmit.addEventListener('click', (event) => {
+    event.preventDefault();
+    const imputCoin = document.getElementById('imput-coin').value;
+    if (verify(imputCoin)) {
+        fetch(`${baseUrl}${imputCoin}`)
+            .then((received) => received.json())
+            .then((data) => addDivs(data, imputCoin));
+    }
 });
+
+window.onload = coins;
